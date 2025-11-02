@@ -5,7 +5,7 @@ from passlib.context import CryptContext
 import datetime
 from streamlit_calendar import calendar
 import pandas as pd
-import numpy as np
+import altair as alt # Importamos la nueva librería
 
 # --- CONFIGURACIÓN Y CONEXIÓN A BD (Sin cambios) ---
 st.set_page_config(page_title="Javier Cancelas Training", layout="wide")
@@ -101,36 +101,50 @@ if st.session_state.logged_in:
             with st.expander("🏋️‍♂️ Rutina A: Fuerza"): st.markdown("- **Sentadillas:** 5x5")
             with st.expander("🏃‍♂️ Rutina B: Hipertrofia"): st.markdown("- **Press Inclinado:** 4x10")
             
-        # --- PESTAÑA 5: MI PROGRESO (MODIFICADA) ---
+        # --- PESTAÑA 5: MI PROGRESO (TOTALMENTE REDISEÑADA) ---
         with tab5:
             st.header("Tu Evolución")
             st.write("---")
             
-            # --- Creación de datos ficticios MENSUALES ---
+            # --- Creación de datos ficticios MÁS REALISTAS ---
             data = {
-                'Mes': pd.to_datetime(['2025-08-01', '2025-09-01', '2025-10-01', '2025-11-01']),
-                'Peso (kg)': [85.0, 83.8, 82.5, 81.9]
+                'Mes': pd.to_datetime(['2025-06-01', '2025-07-01', '2025-08-01', '2025-09-01', '2025-10-01', '2025-11-01']),
+                'Peso (kg)': [115.0, 112.0, 107.0, 108.0, 102.0, 100.5] # Inicio -> -3kg -> -5kg -> +1kg -> -6kg -> -1.5kg
             }
-            df_progreso = pd.DataFrame(data).set_index('Mes')
+            df_progreso = pd.DataFrame(data)
             
-            # --- Evolución del Peso Corporal ---
+            # --- Gráfica de Evolución de Peso con ALTAIR ---
             st.subheader("Evolución del Peso Corporal (Mes a Mes)")
-            st.line_chart(df_progreso['Peso (kg)']) # Mostramos SÓLO la gráfica
+
+            chart = alt.Chart(df_progreso).mark_line(
+                point=alt.OverlayMarkDef(color="yellow", size=100, filled=True) # Puntos amarillos
+            ).encode(
+                x=alt.X('Mes:T', title='Fecha'),
+                y=alt.Y('Peso (kg):Q', title='Peso Corporal (kg)', scale=alt.Scale(domain=[80, 120])), # EJE Y CONTROLADO
+                tooltip=['Mes', 'Peso (kg)']
+            ).properties(
+                height=400
+            ).configure_axis(
+                labelColor='yellow',
+                titleColor='yellow'
+            ).configure_title(
+                color='yellow'
+            ).configure_view(
+                stroke=None
+            )
+            
+            st.altair_chart(chart, use_container_width=True)
 
             st.write("---")
 
             # --- Métrica de Consistencia ---
             st.header("Consistencia de Entrenamiento")
             
-            entrenamientos_mes_actual = 15
-            meta_mensual = 20
+            entrenamientos_mes_actual = 15; meta_mensual = 20
             
             _, center_metric_col, _ = st.columns([1, 1, 1])
             with center_metric_col:
-                st.metric(
-                    label="Entrenamientos este mes",
-                    value=f"{entrenamientos_mes_actual} / {meta_mensual}"
-                )
+                st.metric(label="Entrenamientos este mes", value=f"{entrenamientos_mes_actual} / {meta_mensual}")
             
             porcentaje_meta = int((entrenamientos_mes_actual / meta_mensual) * 100)
             st.progress(porcentaje_meta, text=f"Llevas el {porcentaje_meta}% de tu objetivo mensual")
