@@ -95,7 +95,7 @@ if st.session_state.logged_in:
                 dias_entrenados_ultimo_mes = 15
                 st.metric(label="Entrenamientos en los últimos 30 días", value=f"{dias_entrenados_ultimo_mes} días")
 
-                mensaje = "### 💪 ¡Gran trabajo! Estás construyendo un hábito sólido. ¡A por más!"
+                mensaje = " 💪 ¡Gran trabajo! Estás construyendo un hábito sólido. ¡A por más!"
                 st.markdown(f"<div style='text-align: center;'>{mensaje}</div>", unsafe_allow_html=True)
 
         # Pestaña 2: Mi Historial (CALENDARIO ARREGLADO + DATOS DE SIMULACIÓN)
