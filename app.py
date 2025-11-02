@@ -10,7 +10,7 @@ col1, col2, col3 = st.columns([1, 2, 1])
 
 with col2:
     # --- TÍTULO PRINCIPAL ---
-    st.title("JAVIER CANCELAS TRAINING - JCT")
+    st.title("JAVIER CANCELAS TRAINING")
 
     # --- IMAGEN / LOGO ---
     # Creamos sub-columnas DENTRO de la columna principal para centrar la imagen
