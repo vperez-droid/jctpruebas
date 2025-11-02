@@ -52,10 +52,9 @@ if st.session_state.logged_in:
     
     ADMIN_USERNAME = "admin" 
     
-    # --- VISTA DE ADMINISTRADOR (Sin cambios) ---
     if st.session_state.username == ADMIN_USERNAME:
+        # --- VISTA DE ADMINISTRADOR (Sin cambios) ---
         st.title("Panel de Administrador")
-        # (El código del admin sigue igual)
         conn = get_db_connection()
         clientes = conn.execute("SELECT username FROM users WHERE username != ?", (ADMIN_USERNAME,)).fetchall()
         if clientes:
@@ -73,8 +72,8 @@ if st.session_state.logged_in:
         if st.button("Cerrar Sesión de Admin"):
             st.session_state.logged_in = False; st.session_state.username = ""; st.rerun()
 
-    # --- VISTA DE CLIENTE NORMAL ---
     else:
+        # --- VISTA DE CLIENTE NORMAL ---
         col1, col2 = st.columns([4, 1])
         with col1:
             st.title(f"Bienvenido, {st.session_state.username}!")
@@ -85,25 +84,19 @@ if st.session_state.logged_in:
 
         tab1, tab2, tab3, tab4 = st.tabs(["Panel de Control", "Mi Historial", "Entrenamiento de Hoy", "Mis Rutinas"])
 
-        # Pestaña 1: Panel de Control (CONTENIDO CENTRADO)
         with tab1:
-            # Usamos columnas para centrar todo el contenido
             _, center_col, _ = st.columns([1, 2, 1])
             with center_col:
                 st.header("Resumen de tu Actividad")
-                
                 dias_entrenados_ultimo_mes = 15
                 st.metric(label="Entrenamientos en los últimos 30 días", value=f"{dias_entrenados_ultimo_mes} días")
-
-                mensaje = " 💪 ¡Gran trabajo! Estás construyendo un hábito sólido. ¡A por más!"
+                mensaje = "### 💪 ¡Gran trabajo! Estás construyendo un hábito sólido. ¡A por más!"
                 st.markdown(f"<div style='text-align: center;'>{mensaje}</div>", unsafe_allow_html=True)
 
-        # Pestaña 2: Mi Historial (CALENDARIO ARREGLADO + DATOS DE SIMULACIÓN)
+        # Pestaña 2: Mi Historial (MODIFICADA PARA MÓVILES)
         with tab2:
             st.header("Calendario de Entrenamientos")
             
-            # --- DATOS DE SIMULACIÓN PARA LA DEMO ---
-            # Si la base de datos no tiene historial, usamos estos datos para que siempre se vea bien.
             historial_eventos_demo = [
                 {"title": "✅", "start": "2025-11-03", "color": "#28a745"},
                 {"title": "✅", "start": "2025-11-05", "color": "#28a745"},
@@ -112,53 +105,45 @@ if st.session_state.logged_in:
                 {"title": "✅", "start": "2025-11-12", "color": "#28a745"},
             ]
             
-            calendar(events=historial_eventos_demo, options={"headerToolbar": {"left": "today prev,next", "center": "title"}})
+            # --- CAMBIO CLAVE AQUÍ ---
+            # Se definen las opciones en un diccionario para añadir la propiedad 'height'.
+            calendar_options = {
+                "headerToolbar": {
+                    "left": "today",
+                    "center": "title",
+                    "right": "prev,next",
+                },
+                "initialView": "dayGridMonth",
+                "height": "auto" # Esta es la línea mágica para la compatibilidad móvil
+            }
+            
+            calendar(events=historial_eventos_demo, options=calendar_options)
 
-        # Pestaña 3: Entrenamiento de Hoy (CON DATOS DE SIMULACIÓN)
         with tab3:
             st.header("Tu Rutina para Hoy")
-            st.info("Nota: Esta es una rutina de ejemplo. Tus rutinas reales aparecerán aquí.")
-            
-            # --- RUTINA DE SIMULACIÓN PARA LA DEMO ---
+            st.info("Nota: Esta es una rutina de ejemplo.")
             st.markdown("""
             ### Rutina de Tren Superior - Enfoque Pecho y Espalda
             *   **Calentamiento:** 10 minutos de cardio ligero.
             ---
-            1.  **Press de Banca con Barra**
-                *   Series: 4
-                *   Repeticiones: 8-10
-            2.  **Dominadas (o Jalón al Pecho)**
-                *   Series: 4
-                *   Repeticiones: Al fallo
-            3.  **Aperturas con Mancuernas en Banco Inclinado**
-                *   Series: 3
-                *   Repeticiones: 12-15
-            4.  **Remo con Barra**
-                *   Series: 4
-                *   Repeticiones: 10
-            5.  **Elevaciones Laterales con Mancuernas**
-                *   Series: 3
-                *   Repeticiones: 15
-            ---
-            *   **Enfriamiento:** 5-10 minutos de estiramientos.
+            1.  **Press de Banca con Barra** (`Series: 4`, `Repeticiones: 8-10`)
+            2.  **Dominadas o Jalón al Pecho** (`Series: 4`, `Repeticiones: Al fallo`)
+            3.  **Aperturas con Mancuernas** (`Series: 3`, `Repeticiones: 12-15`)
             """)
             st.write("---")
             if st.button("✅ He completado el entrenamiento"):
                 st.success("¡Genial! Entrenamiento registrado.")
                 st.balloons()
 
-        # Pestaña 4: Mis Rutinas (CON DATOS DE SIMULACIÓN)
         with tab4:
             st.header("Biblioteca de Rutinas")
-            st.info("Aquí encontrarás todas las rutinas que tu entrenador te ha asignado.")
-            
-            # --- RUTINAS DE SIMULACIÓN PARA LA DEMO ---
-            with st.expander("🏋️‍♂️ Rutina A: Enfoque Fuerza (Lunes)"):
+            st.info("Aquí encontrarás tus rutinas asignadas.")
+            with st.expander("🏋️‍♂️ Rutina A: Enfoque Fuerza"):
                 st.markdown("- **Sentadillas:** 5x5\n- **Press de Banca:** 5x5\n- **Peso Muerto:** 1x5")
-            with st.expander("🏃‍♂️ Rutina B: Hipertrofia (Miércoles)"):
-                st.markdown("- **Press Inclinado con Mancuernas:** 4x10\n- **Remo con Mancuerna:** 4x12\n- **Prensa de Piernas:** 3x15\n- **Curl de Bíceps:** 3x12")
-            with st.expander("🔥 Rutina C: Acondicionamiento (Viernes)"):
-                st.markdown("- **Burpees:** 3 series de 1 minuto\n- **Kettlebell Swings:** 3x20\n- **Plancha:** 3 series hasta el fallo")
+            with st.expander("🏃‍♂️ Rutina B: Hipertrofia"):
+                st.markdown("- **Press Inclinado:** 4x10\n- **Remo con Mancuerna:** 4x12\n- **Prensa:** 3x15")
+            with st.expander("🔥 Rutina C: Acondicionamiento"):
+                st.markdown("- **Burpees:** 3x1min\n- **Kettlebell Swings:** 3x20\n- **Plancha:** 3xAl fallo")
 
 # --- PÁGINA DE LOGIN (Sin cambios) ---
 else:
