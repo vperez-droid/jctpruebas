@@ -149,4 +149,21 @@ if st.session_state.logged_in:
                 )
             
             # Barra de Progreso
-            porcentaje_meta = int((entrenamientos_mes_actual / meta_mensua
+            porcentaje_meta = int((entrenamientos_mes_actual / meta_mensual) * 100)
+            st.progress(porcentaje_meta, text=f"Llevas el {porcentaje_meta}% de tu objetivo mensual")
+
+
+# --- PÁGINA DE LOGIN (Sin cambios) ---
+else:
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.title("JAVIER CANCELAS TRAINING - JCT")
+        img_col1, img_col2, img_col3 = st.columns([1, 1, 1])
+        with img_col2:
+            try: image = Image.open('jct.jpeg'); st.image(image, width=200)
+            except FileNotFoundError: st.error("No se encontró el logo.")
+        st.header("Inicio de sesión")
+        with st.form("login_form"):
+            st.text_input("Usuario", key="login_username")
+            st.text_input("Contraseña", type="password", key="login_password")
+            if st.form_submit_button("Iniciar sesión"): login_user()
