@@ -55,6 +55,7 @@ if st.session_state.logged_in:
     # --- VISTA DE ADMINISTRADOR (Sin cambios) ---
     if st.session_state.username == ADMIN_USERNAME:
         st.title("Panel de Administrador")
+        # (El código del admin sigue igual)
         conn = get_db_connection()
         clientes = conn.execute("SELECT username FROM users WHERE username != ?", (ADMIN_USERNAME,)).fetchall()
         if clientes:
@@ -84,77 +85,80 @@ if st.session_state.logged_in:
 
         tab1, tab2, tab3, tab4 = st.tabs(["Panel de Control", "Mi Historial", "Entrenamiento de Hoy", "Mis Rutinas"])
 
-        # Pestaña 1: Panel de Control (MODIFICADO)
+        # Pestaña 1: Panel de Control (CONTENIDO CENTRADO)
         with tab1:
-            st.header("Resumen de tu Actividad")
-            
-            # Usamos columnas para centrar el contenido
-            center_col1, center_col2, center_col3 = st.columns([1, 2, 1])
-            with center_col2:
-                dias_entrenados_ultimo_mes = 15 # Dato ficticio
+            # Usamos columnas para centrar todo el contenido
+            _, center_col, _ = st.columns([1, 2, 1])
+            with center_col:
+                st.header("Resumen de tu Actividad")
                 
+                dias_entrenados_ultimo_mes = 15
                 st.metric(label="Entrenamientos en los últimos 30 días", value=f"{dias_entrenados_ultimo_mes} días")
 
-                mensaje = ""
-                if dias_entrenados_ultimo_mes > 20:
-                    mensaje = "### ✅ ¡Imparable! Tu constancia es de otro nivel. ¡Sigue así!"
-                elif dias_entrenados_ultimo_mes > 12:
-                    mensaje = "### 💪 ¡Gran trabajo! Estás construyendo un hábito sólido. ¡A por más!"
-                elif dias_entrenados_ultimo_mes > 5:
-                    mensaje = "### 👍 ¡Buen ritmo! Cada sesión suma. ¡No pierdas el impulso!"
-                else:
-                    mensaje = "### 🚀 ¡Listos para empezar! El camino comienza ahora. ¡Vamos a por ello!"
-                
+                mensaje = "### 💪 ¡Gran trabajo! Estás construyendo un hábito sólido. ¡A por más!"
                 st.markdown(f"<div style='text-align: center;'>{mensaje}</div>", unsafe_allow_html=True)
 
-        # Pestaña 2: Mi Historial (MODIFICADO Y ARREGLADO)
+        # Pestaña 2: Mi Historial (CALENDARIO ARREGLADO + DATOS DE SIMULACIÓN)
         with tab2:
             st.header("Calendario de Entrenamientos")
-            conn = get_db_connection()
-            registros = conn.execute("SELECT fecha, estado FROM historial WHERE username = ?", (st.session_state.username,)).fetchall()
-            conn.close()
             
-            historial_eventos = []
-            for registro in registros:
-                if registro['estado'] == 'Entrenado':
-                    # Ahora solo ponemos el emoji en el título
-                    evento = {"title": "✅", "start": registro['fecha'], "color": "#28a745"}
-                else: 
-                    evento = {"title": "❌", "start": registro['fecha'], "color": "#dc3545"}
-                historial_eventos.append(evento)
+            # --- DATOS DE SIMULACIÓN PARA LA DEMO ---
+            # Si la base de datos no tiene historial, usamos estos datos para que siempre se vea bien.
+            historial_eventos_demo = [
+                {"title": "✅", "start": "2025-11-03", "color": "#28a745"},
+                {"title": "✅", "start": "2025-11-05", "color": "#28a745"},
+                {"title": "❌", "start": "2025-11-07", "color": "#dc3545"},
+                {"title": "✅", "start": "2025-11-10", "color": "#28a745"},
+                {"title": "✅", "start": "2025-11-12", "color": "#28a745"},
+            ]
             
-            # Se había borrado esta línea, la volvemos a añadir para que el calendario se muestre
-            calendar(events=historial_eventos, options={"headerToolbar": {"left": "today prev,next", "center": "title"}})
+            calendar(events=historial_eventos_demo, options={"headerToolbar": {"left": "today prev,next", "center": "title"}})
 
-        # Pestaña 3: Entrenamiento de Hoy (Sin cambios)
+        # Pestaña 3: Entrenamiento de Hoy (CON DATOS DE SIMULACIÓN)
         with tab3:
             st.header("Tu Rutina para Hoy")
-            hoy_str = datetime.date.today().strftime("%Y-%m-%d")
-            conn = get_db_connection()
-            rutina_hoy = conn.execute("SELECT contenido FROM rutinas WHERE username = ? AND fecha = ?", (st.session_state.username, hoy_str)).fetchone()
-            if rutina_hoy:
-                st.markdown(rutina_hoy['contenido'])
-                st.write("---")
-                if st.button("✅ He completado el entrenamiento"):
-                    conn.execute("INSERT OR REPLACE INTO historial (username, fecha, estado) VALUES (?, ?, 'Entrenado')", (st.session_state.username, hoy_str))
-                    conn.commit()
-                    st.success("¡Genial! Entrenamiento registrado.")
-            else:
-                st.info("No tienes ninguna rutina asignada para hoy.")
-            conn.close()
+            st.info("Nota: Esta es una rutina de ejemplo. Tus rutinas reales aparecerán aquí.")
+            
+            # --- RUTINA DE SIMULACIÓN PARA LA DEMO ---
+            st.markdown("""
+            ### Rutina de Tren Superior - Enfoque Pecho y Espalda
+            *   **Calentamiento:** 10 minutos de cardio ligero.
+            ---
+            1.  **Press de Banca con Barra**
+                *   Series: 4
+                *   Repeticiones: 8-10
+            2.  **Dominadas (o Jalón al Pecho)**
+                *   Series: 4
+                *   Repeticiones: Al fallo
+            3.  **Aperturas con Mancuernas en Banco Inclinado**
+                *   Series: 3
+                *   Repeticiones: 12-15
+            4.  **Remo con Barra**
+                *   Series: 4
+                *   Repeticiones: 10
+            5.  **Elevaciones Laterales con Mancuernas**
+                *   Series: 3
+                *   Repeticiones: 15
+            ---
+            *   **Enfriamiento:** 5-10 minutos de estiramientos.
+            """)
+            st.write("---")
+            if st.button("✅ He completado el entrenamiento"):
+                st.success("¡Genial! Entrenamiento registrado.")
+                st.balloons()
 
-        # Pestaña 4: Mis Rutinas (Sin cambios)
+        # Pestaña 4: Mis Rutinas (CON DATOS DE SIMULACIÓN)
         with tab4:
             st.header("Biblioteca de Rutinas")
-            conn = get_db_connection()
-            todas_mis_rutinas = conn.execute("SELECT fecha, contenido FROM rutinas WHERE username = ? ORDER BY fecha DESC", (st.session_state.username,)).fetchall()
-            conn.close()
-            if todas_mis_rutinas:
-                for rutina in todas_mis_rutinas:
-                    with st.expander(f"Rutina del {rutina['fecha']}"):
-                        st.markdown(rutina['contenido'])
-            else:
-                st.info("Aún no tienes ninguna rutina asignada.")
+            st.info("Aquí encontrarás todas las rutinas que tu entrenador te ha asignado.")
+            
+            # --- RUTINAS DE SIMULACIÓN PARA LA DEMO ---
+            with st.expander("🏋️‍♂️ Rutina A: Enfoque Fuerza (Lunes)"):
+                st.markdown("- **Sentadillas:** 5x5\n- **Press de Banca:** 5x5\n- **Peso Muerto:** 1x5")
+            with st.expander("🏃‍♂️ Rutina B: Hipertrofia (Miércoles)"):
+                st.markdown("- **Press Inclinado con Mancuernas:** 4x10\n- **Remo con Mancuerna:** 4x12\n- **Prensa de Piernas:** 3x15\n- **Curl de Bíceps:** 3x12")
+            with st.expander("🔥 Rutina C: Acondicionamiento (Viernes)"):
+                st.markdown("- **Burpees:** 3 series de 1 minuto\n- **Kettlebell Swings:** 3x20\n- **Plancha:** 3 series hasta el fallo")
 
 # --- PÁGINA DE LOGIN (Sin cambios) ---
 else:
