@@ -8,14 +8,12 @@ from streamlit_calendar import calendar
 # --- CONFIGURACIÓN INICIAL ---
 st.set_page_config(page_title="Javier Cancelas Training", layout="wide")
 
-# --- CONTEXTO DE HASHING (CON ARGON2) Y FUNCIONES DE BASE DE DATOS ---
+# --- LÓGICA DE BASE DE DATOS Y AUTENTICACIÓN (Sin cambios) ---
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
-# Función para verificar la contraseña
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
-# Función para obtener la información de un usuario desde la BD
 def get_user(username):
     conn = sqlite3.connect('users.db')
     c = conn.cursor()
@@ -24,7 +22,7 @@ def get_user(username):
     conn.close()
     return user_data
 
-# --- LÓGICA DE LOGIN Y ESTADO DE SESIÓN ---
+# --- LÓGICA DE LOGIN Y ESTADO DE SESIÓN (Sin cambios) ---
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
     st.session_state.username = ""
@@ -41,44 +39,92 @@ def login_user():
         st.error("Usuario o contraseña incorrectos.")
 
 # --- INTERFAZ DE USUARIO ---
+
+# SI EL USUARIO HA INICIADO SESIÓN, MUESTRA LA APP PRINCIPAL CON NAVEGACIÓN
 if st.session_state.logged_in:
-    # --- PÁGINA PRINCIPAL (CONTENIDO DESPUÉS DEL LOGIN) ---
-    st.title(f"Bienvenido, {st.session_state.username}!")
-
-    # Mostrar la fecha de hoy
-    hoy = datetime.date.today()
-    st.header(f"Hoy es: {hoy.strftime('%d de %B de %Y')}")
-
-    # Opciones de configuración para el calendario
-    calendar_options = {
-        "headerToolbar": {
-            "left": "today prev,next",
-            "center": "title",
-            "right": "dayGridMonth,timeGridWeek,timeGridDay",
-        },
-        "initialView": "dayGridMonth",
-    }
-
-    st.write("---") # Línea separadora
     
-    # Mostrar el calendario
-    st.subheader("Calendario del Mes")
-    calendar_component = calendar(events=[], options=calendar_options)
+    # --- BARRA LATERAL DE NAVEGACIÓN ---
+    with st.sidebar:
+        st.title(f"Hola, {st.session_state.username}")
+        st.write("---")
+        
+        # Opciones del menú
+        opcion = st.radio(
+            "Navegación",
+            ("Panel de Control", "Mi Historial", "Entrenamiento de Hoy", "Mis Rutinas")
+        )
+        
+        st.write("---")
+        if st.button("Cerrar sesión"):
+            st.session_state.logged_in = False
+            st.session_state.username = ""
+            st.rerun()
+
+    # --- CONTENIDO PRINCIPAL (CAMBIA SEGÚN LA SELECCIÓN) ---
+
+    # -- APARTADO 1: PANEL DE CONTROL (PÁGINA DE INICIO) --
+    if opcion == "Panel de Control":
+        st.title("Panel de Control")
+        st.header(f"¡Bienvenido de nuevo!")
+        hoy = datetime.date.today()
+        st.write(f"Hoy es: **{hoy.strftime('%d de %B de %Y')}**.")
+        st.write("Selecciona una opción de la barra lateral para empezar.")
+
+    # -- APARTADO 2: MI HISTORIAL --
+    elif opcion == "Mi Historial":
+        st.title("Mi Historial de Entrenamiento")
+        st.write("Aquí puedes ver un resumen de tus días de entrenamiento.")
+
+        # DATOS FICTICIOS: En el futuro, esto vendrá de la base de datos.
+        # Creamos eventos para el calendario con un tick verde o una cruz roja.
+        historial_eventos = [
+            {"title": "✅ Entrenado", "start": "2025-11-03", "color": "#28a745"},
+            {"title": "✅ Entrenado", "start": "2025-11-05", "color": "#28a745"},
+            {"title": "❌ Faltó", "start": "2025-11-07", "color": "#dc3545"},
+            {"title": "✅ Entrenado", "start": "2025-11-10", "color": "#28a745"},
+        ]
+        
+        calendar_options = {"headerToolbar": {"left": "today prev,next", "center": "title"}}
+        calendar(events=historial_eventos, options=calendar_options)
+
+    # -- APARTADO 3: ENTRENAMIENTO DE HOY --
+    elif opcion == "Entrenamiento de Hoy":
+        st.title("Entrenamiento de Hoy")
+        st.header("Rutina de Pecho y Tríceps")
+        
+        # DATOS FICTICIOS:
+        st.markdown("""
+        - **Press de Banca:** 4 series x 8-10 repeticiones
+        - **Fondos en paralelas:** 3 series x al fallo
+        - **Aperturas con mancuernas:** 3 series x 12 repeticiones
+        - **Press francés:** 4 series x 10 repeticiones
+        - **Extensiones de tríceps en polea:** 3 series x 15 repeticiones
+        """)
+        
+        st.info("Recuerda calentar bien antes de empezar y estirar al terminar.")
+
+    # -- APARTADO 4: MIS RUTINAS --
+    elif opcion == "Mis Rutinas":
+        st.title("Mis Rutinas")
+        st.write("Aquí tienes todas las rutinas que te ha asignado tu entrenador.")
+        
+        # Usamos st.expander para mostrar las rutinas de forma ordenada
+        with st.expander("Rutina A: Tren Superior"):
+            st.write("Press de Banca, Remo con Barra, Press Militar, Dominadas...")
+            
+        with st.expander("Rutina B: Tren Inferior"):
+            st.write("Sentadillas, Peso Muerto, Zancadas, Elevación de talones...")
+            
+        with st.expander("Rutina C: Full Body"):
+            st.write("Sentadillas, Press de Banca, Dominadas, Plancha...")
 
 
-    if st.button("Cerrar sesión"):
-        st.session_state.logged_in = False
-        st.session_state.username = ""
-        st.rerun()
-
-# Si el usuario no ha iniciado sesión, muestra la página de login
+# SI EL USUARIO NO HA INICIADO SESIÓN, MUESTRA EL LOGIN
 else:
-    # --- PÁGINA DE LOGIN ---
+    # --- PÁGINA DE LOGIN (Sin cambios) ---
     col1, col2, col3 = st.columns([1, 2, 1])
-
     with col2:
         st.title("JAVIER CANCELAS TRAINING - JCT")
-        
         img_col1, img_col2, img_col3 = st.columns([1, 1, 1])
         with img_col2:
             try:
@@ -86,12 +132,9 @@ else:
                 st.image(image, width=200)
             except FileNotFoundError:
                 st.error("No se encontró el logo.")
-
         st.header("Inicio de sesión")
-
         with st.form("login_form"):
             st.text_input("Usuario", key="login_username")
             st.text_input("Contraseña", type="password", key="login_password")
-
             if st.form_submit_button("Iniciar sesión"):
                 login_user()
