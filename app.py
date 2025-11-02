@@ -9,17 +9,19 @@ st.set_page_config(page_title="Javier Cancelas Training", layout="wide")
 col1, col2, col3 = st.columns([1, 2, 1])
 
 with col2:
-    # --- IMAGEN ---
-    # Intentamos cargar y mostrar la imagen.
-    # El bloque try/except evita que la app se rompa si no encuentra la imagen.
+    # --- TÍTULO PRINCIPAL ---
+    st.title("JAVIER CANCELAS TRAINING - JCT")
+
+    # --- IMAGEN / LOGO ---
+    # La mostramos aquí, después del título
     try:
         image = Image.open('jct.jpeg')
-        st.image(image, use_column_width=True)
+        # Usamos 'width' para controlar el tamaño exacto. 200 es un buen punto de partida.
+        st.image(image, width=200)
     except FileNotFoundError:
         st.error("No se encontró la imagen 'jct.jpeg'. Asegúrate de que está en el repositorio.")
 
-    # --- CONTENIDO DE LA PÁGINA ---
-    st.title("JAVIER CANCELAS TRAINING - JCT")
+    # --- SUBTÍTULO ---
     st.header("Inicio de sesión")
 
     # --- FORMULARIO DE INICIO DE SESIÓN ---
