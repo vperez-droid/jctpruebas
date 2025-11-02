@@ -5,24 +5,32 @@ from passlib.context import CryptContext
 import datetime
 from streamlit_calendar import calendar
 
-# --- CONFIGURACIÓN INICIAL ---
+# --- CONFIGURACIÓN Y CONEXIÓN A BD (Sin cambios) ---
 st.set_page_config(page_title="Javier Cancelas Training", layout="wide")
 
-# --- LÓGICA DE BASE DE DATOS Y AUTENTICACIÓN (Sin cambios) ---
+def get_db_connection():
+    conn = sqlite3.connect('users.db', check_same_thread=False)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def init_db():
+    conn = get_db_connection()
+    conn.execute('CREATE TABLE IF NOT EXISTS rutinas (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL, fecha TEXT NOT NULL, contenido TEXT NOT NULL, FOREIGN KEY (username) REFERENCES users (username))')
+    conn.execute('CREATE TABLE IF NOT EXISTS historial (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL, fecha TEXT NOT NULL, estado TEXT NOT NULL, FOREIGN KEY (username) REFERENCES users (username), UNIQUE(username, fecha))')
+    conn.commit()
+    conn.close()
+
+init_db()
+
+# --- LÓGICA DE AUTENTICACIÓN (Sin cambios) ---
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
-
-def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
-
+def verify_password(plain_password, hashed_password): return pwd_context.verify(plain_password, hashed_password)
 def get_user(username):
-    conn = sqlite3.connect('users.db')
-    c = conn.cursor()
-    c.execute("SELECT * FROM users WHERE username = ?", (username,))
-    user_data = c.fetchone()
+    conn = get_db_connection()
+    user_data = conn.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
     conn.close()
     return user_data
 
-# --- LÓGICA DE LOGIN Y ESTADO DE SESIÓN (Sin cambios) ---
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
     st.session_state.username = ""
@@ -30,98 +38,122 @@ if 'logged_in' not in st.session_state:
 def login_user():
     username = st.session_state.login_username
     password = st.session_state.login_password
-    
     user_data = get_user(username)
     if user_data and verify_password(password, user_data[1]):
         st.session_state.logged_in = True
         st.session_state.username = username
+        st.rerun()
     else:
         st.error("Usuario o contraseña incorrectos.")
 
 # --- INTERFAZ DE USUARIO ---
 
-# SI EL USUARIO HA INICIADO SESIÓN, MUESTRA LA APP PRINCIPAL CON NAVEGACIÓN
 if st.session_state.logged_in:
     
-    # --- BARRA LATERAL DE NAVEGACIÓN ---
-    with st.sidebar:
-        st.title(f"Hola, {st.session_state.username}")
+    ADMIN_USERNAME = "admin" 
+    
+    # --- VISTA DE ADMINISTRADOR (Sin cambios) ---
+    if st.session_state.username == ADMIN_USERNAME:
+        st.title("Panel de Administrador")
+        conn = get_db_connection()
+        clientes = conn.execute("SELECT username FROM users WHERE username != ?", (ADMIN_USERNAME,)).fetchall()
+        if clientes:
+            cliente_seleccionado = st.selectbox("Seleccionar Cliente", [c['username'] for c in clientes])
+            fecha_rutina = st.date_input("Fecha de la Rutina")
+            contenido_rutina = st.text_area("Contenido de la Rutina (Ej: Press Banca 4x10, ...)")
+            if st.button("Guardar Rutina"):
+                conn.execute("INSERT OR REPLACE INTO rutinas (username, fecha, contenido) VALUES (?, ?, ?)", (cliente_seleccionado, fecha_rutina.strftime("%Y-%m-%d"), contenido_rutina))
+                conn.commit()
+                st.success(f"Rutina guardada para {cliente_seleccionado} en la fecha {fecha_rutina}.")
+        else:
+            st.warning("No hay clientes para asignar rutinas. Crea nuevos usuarios.")
+        conn.close()
         st.write("---")
-        
-        # Opciones del menú
-        opcion = st.radio(
-            "Navegación",
-            ("Panel de Control", "Mi Historial", "Entrenamiento de Hoy", "Mis Rutinas")
-        )
-        
+        if st.button("Cerrar Sesión de Admin"):
+            st.session_state.logged_in = False; st.session_state.username = ""; st.rerun()
+
+    # --- VISTA DE CLIENTE NORMAL (REESTRUCTURADA CON PESTAÑAS) ---
+    else:
+        # Encabezado principal con saludo y botón de cierre de sesión
+        col1, col2 = st.columns([4, 1])
+        with col1:
+            st.title(f"Bienvenido, {st.session_state.username}!")
+        with col2:
+            if st.button("Cerrar sesión"):
+                st.session_state.logged_in = False; st.session_state.username = ""; st.rerun()
+
         st.write("---")
-        if st.button("Cerrar sesión"):
-            st.session_state.logged_in = False
-            st.session_state.username = ""
-            st.rerun()
 
-    # --- CONTENIDO PRINCIPAL (CAMBIA SEGÚN LA SELECCIÓN) ---
+        # Creación de las pestañas de navegación
+        tab1, tab2, tab3, tab4 = st.tabs(["Panel de Control", "Mi Historial", "Entrenamiento de Hoy", "Mis Rutinas"])
 
-    # -- APARTADO 1: PANEL DE CONTROL (PÁGINA DE INICIO) --
-    if opcion == "Panel de Control":
-        st.title("Panel de Control")
-        st.header(f"¡Bienvenido de nuevo!")
-        hoy = datetime.date.today()
-        st.write(f"Hoy es: **{hoy.strftime('%d de %B de %Y')}**.")
-        st.write("Selecciona una opción de la barra lateral para empezar.")
-
-    # -- APARTADO 2: MI HISTORIAL --
-    elif opcion == "Mi Historial":
-        st.title("Mi Historial de Entrenamiento")
-        st.write("Aquí puedes ver un resumen de tus días de entrenamiento.")
-
-        # DATOS FICTICIOS: En el futuro, esto vendrá de la base de datos.
-        # Creamos eventos para el calendario con un tick verde o una cruz roja.
-        historial_eventos = [
-            {"title": "✅ Entrenado", "start": "2025-11-03", "color": "#28a745"},
-            {"title": "✅ Entrenado", "start": "2025-11-05", "color": "#28a745"},
-            {"title": "❌ Faltó", "start": "2025-11-07", "color": "#dc3545"},
-            {"title": "✅ Entrenado", "start": "2025-11-10", "color": "#28a745"},
-        ]
-        
-        calendar_options = {"headerToolbar": {"left": "today prev,next", "center": "title"}}
-        calendar(events=historial_eventos, options=calendar_options)
-
-    # -- APARTADO 3: ENTRENAMIENTO DE HOY --
-    elif opcion == "Entrenamiento de Hoy":
-        st.title("Entrenamiento de Hoy")
-        st.header("Rutina de Pecho y Tríceps")
-        
-        # DATOS FICTICIOS:
-        st.markdown("""
-        - **Press de Banca:** 4 series x 8-10 repeticiones
-        - **Fondos en paralelas:** 3 series x al fallo
-        - **Aperturas con mancuernas:** 3 series x 12 repeticiones
-        - **Press francés:** 4 series x 10 repeticiones
-        - **Extensiones de tríceps en polea:** 3 series x 15 repeticiones
-        """)
-        
-        st.info("Recuerda calentar bien antes de empezar y estirar al terminar.")
-
-    # -- APARTADO 4: MIS RUTINAS --
-    elif opcion == "Mis Rutinas":
-        st.title("Mis Rutinas")
-        st.write("Aquí tienes todas las rutinas que te ha asignado tu entrenador.")
-        
-        # Usamos st.expander para mostrar las rutinas de forma ordenada
-        with st.expander("Rutina A: Tren Superior"):
-            st.write("Press de Banca, Remo con Barra, Press Militar, Dominadas...")
+        # Pestaña 1: Panel de Control
+        with tab1:
+            st.header("Resumen de tu Actividad")
             
-        with st.expander("Rutina B: Tren Inferior"):
-            st.write("Sentadillas, Peso Muerto, Zancadas, Elevación de talones...")
+            dias_entrenados_ultimo_mes = 15 # Dato ficticio
             
-        with st.expander("Rutina C: Full Body"):
-            st.write("Sentadillas, Press de Banca, Dominadas, Plancha...")
+            st.metric(label="Entrenamientos en los últimos 30 días", value=f"{dias_entrenados_ultimo_mes} días")
 
+            mensaje = ""
+            if dias_entrenados_ultimo_mes > 20:
+                mensaje = "### ✅ ¡Imparable! Tu constancia es de otro nivel. ¡Sigue así!"
+            elif dias_entrenados_ultimo_mes > 12:
+                mensaje = "### 💪 ¡Gran trabajo! Estás construyendo un hábito sólido. ¡A por más!"
+            elif dias_entrenados_ultimo_mes > 5:
+                mensaje = "### 👍 ¡Buen ritmo! Cada sesión suma. ¡No pierdas el impulso!"
+            else:
+                mensaje = "### 🚀 ¡Listos para empezar! El camino comienza ahora. ¡Vamos a por ello!"
+            
+            # Usamos st.markdown para que el texto sea más grande y con emojis, respetando el tema
+            st.markdown(mensaje)
 
-# SI EL USUARIO NO HA INICIADO SESIÓN, MUESTRA EL LOGIN
+        # Pestaña 2: Mi Historial
+        with tab2:
+            st.header("Calendario de Entrenamientos")
+            conn = get_db_connection()
+            registros = conn.execute("SELECT fecha, estado FROM historial WHERE username = ?", (st.session_state.username,)).fetchall()
+            conn.close()
+            historial_eventos = []
+            for registro in registros:
+                if registro['estado'] == 'Entrenado':
+                    evento = {"title": "✅ Entrenado", "start": registro['fecha'], "color": "#28a745"}
+                else: evento = {"title": "❌ Faltó", "start": registro['fecha'], "color": "#dc3545"}
+                historial_eventos.append(evento)
+            calendar(events=historial_eventos, options={"headerToolbar": {"left": "today prev,next", "center": "title"}})
+
+        # Pestaña 3: Entrenamiento de Hoy
+        with tab3:
+            st.header("Tu Rutina para Hoy")
+            hoy_str = datetime.date.today().strftime("%Y-%m-%d")
+            conn = get_db_connection()
+            rutina_hoy = conn.execute("SELECT contenido FROM rutinas WHERE username = ? AND fecha = ?", (st.session_state.username, hoy_str)).fetchone()
+            if rutina_hoy:
+                st.markdown(rutina_hoy['contenido'])
+                st.write("---")
+                if st.button("✅ He completado el entrenamiento"):
+                    conn.execute("INSERT OR REPLACE INTO historial (username, fecha, estado) VALUES (?, ?, 'Entrenado')", (st.session_state.username, hoy_str))
+                    conn.commit()
+                    st.success("¡Genial! Entrenamiento registrado.")
+            else:
+                st.info("No tienes ninguna rutina asignada para hoy.")
+            conn.close()
+
+        # Pestaña 4: Mis Rutinas
+        with tab4:
+            st.header("Biblioteca de Rutinas")
+            conn = get_db_connection()
+            todas_mis_rutinas = conn.execute("SELECT fecha, contenido FROM rutinas WHERE username = ? ORDER BY fecha DESC", (st.session_state.username,)).fetchall()
+            conn.close()
+            if todas_mis_rutinas:
+                for rutina in todas_mis_rutinas:
+                    with st.expander(f"Rutina del {rutina['fecha']}"):
+                        st.markdown(rutina['contenido'])
+            else:
+                st.info("Aún no tienes ninguna rutina asignada.")
+
+# --- PÁGINA DE LOGIN (Sin cambios) ---
 else:
-    # --- PÁGINA DE LOGIN (Sin cambios) ---
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.title("JAVIER CANCELAS TRAINING - JCT")
