@@ -11,7 +11,7 @@ col1, col2, col3 = st.columns([1, 2, 1])
 
 with col2:
     # --- CONTENIDO DE LA PÁGINA ---
-    st.title("JAVIER CANCELAS TRAINING - JCT")
+    st.title("JAVIER CANCELAS TRAINING")
     st.header("Inicio de sesión")
 
     # --- FORMULARIO DE INICIO DE SESIÓN ---
