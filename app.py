@@ -4,6 +4,8 @@ import sqlite3
 from passlib.context import CryptContext
 import datetime
 from streamlit_calendar import calendar
+import pandas as pd
+import numpy as np
 
 # --- CONFIGURACIÓN Y CONEXIÓN A BD (Sin cambios) ---
 st.set_page_config(page_title="Javier Cancelas Training", layout="wide")
@@ -31,20 +33,15 @@ def get_user(username):
     conn.close()
     return user_data
 
-if 'logged_in' not in st.session_state:
-    st.session_state.logged_in = False
-    st.session_state.username = ""
+if 'logged_in' not in st.session_state: st.session_state.logged_in = False; st.session_state.username = ""
 
 def login_user():
     username = st.session_state.login_username
     password = st.session_state.login_password
     user_data = get_user(username)
     if user_data and verify_password(password, user_data[1]):
-        st.session_state.logged_in = True
-        st.session_state.username = username
-        st.rerun()
-    else:
-        st.error("Usuario o contraseña incorrectos.")
+        st.session_state.logged_in = True; st.session_state.username = username; st.rerun()
+    else: st.error("Usuario o contraseña incorrectos.")
 
 # --- INTERFAZ DE USUARIO ---
 
@@ -55,111 +52,101 @@ if st.session_state.logged_in:
     if st.session_state.username == ADMIN_USERNAME:
         # --- VISTA DE ADMINISTRADOR (Sin cambios) ---
         st.title("Panel de Administrador")
-        conn = get_db_connection()
-        clientes = conn.execute("SELECT username FROM users WHERE username != ?", (ADMIN_USERNAME,)).fetchall()
+        # (El código del admin sigue igual)
+        conn = get_db_connection(); clientes = conn.execute("SELECT username FROM users WHERE username != ?", (ADMIN_USERNAME,)).fetchall()
         if clientes:
             cliente_seleccionado = st.selectbox("Seleccionar Cliente", [c['username'] for c in clientes])
             fecha_rutina = st.date_input("Fecha de la Rutina")
-            contenido_rutina = st.text_area("Contenido de la Rutina (Ej: Press Banca 4x10, ...)")
+            contenido_rutina = st.text_area("Contenido de la Rutina")
             if st.button("Guardar Rutina"):
                 conn.execute("INSERT OR REPLACE INTO rutinas (username, fecha, contenido) VALUES (?, ?, ?)", (cliente_seleccionado, fecha_rutina.strftime("%Y-%m-%d"), contenido_rutina))
-                conn.commit()
-                st.success(f"Rutina guardada para {cliente_seleccionado} en la fecha {fecha_rutina}.")
-        else:
-            st.warning("No hay clientes para asignar rutinas. Crea nuevos usuarios.")
-        conn.close()
-        st.write("---")
-        if st.button("Cerrar Sesión de Admin"):
-            st.session_state.logged_in = False; st.session_state.username = ""; st.rerun()
+                conn.commit(); st.success(f"Rutina guardada para {cliente_seleccionado}.")
+        else: st.warning("No hay clientes para asignar rutinas.")
+        conn.close(); st.write("---")
+        if st.button("Cerrar Sesión de Admin"): st.session_state.logged_in = False; st.session_state.username = ""; st.rerun()
 
     else:
         # --- VISTA DE CLIENTE NORMAL ---
         col1, col2 = st.columns([4, 1])
-        with col1:
-            st.title(f"Bienvenido, {st.session_state.username}!")
+        with col1: st.title(f"Bienvenido, {st.session_state.username}!")
         with col2:
-            if st.button("Cerrar sesión"):
-                st.session_state.logged_in = False; st.session_state.username = ""; st.rerun()
+            if st.button("Cerrar sesión"): st.session_state.logged_in = False; st.session_state.username = ""; st.rerun()
         st.write("---")
 
-        tab1, tab2, tab3, tab4 = st.tabs(["Panel de Control", "Mi Historial", "Entrenamiento de Hoy", "Mis Rutinas"])
+        # AÑADIMOS LA NUEVA PESTAÑA "MI PROGRESO"
+        tab1, tab2, tab3, tab4, tab5 = st.tabs(["Panel de Control", "Entrenamiento de Hoy", "Mi Historial", "Mis Rutinas", "Mi Progreso"])
 
-        with tab1:
+        with tab1: # Panel de Control
             _, center_col, _ = st.columns([1, 2, 1])
             with center_col:
                 st.header("Resumen de tu Actividad")
                 dias_entrenados_ultimo_mes = 15
                 st.metric(label="Entrenamientos en los últimos 30 días", value=f"{dias_entrenados_ultimo_mes} días")
-                mensaje = "💪 ¡Gran trabajo! Estás construyendo un hábito sólido. ¡A por más!"
+                mensaje = "### 💪 ¡Gran trabajo! Estás construyendo un hábito sólido."
                 st.markdown(f"<div style='text-align: center;'>{mensaje}</div>", unsafe_allow_html=True)
 
-        # Pestaña 2: Mi Historial (MODIFICADA PARA MÓVILES)
-        with tab2:
-            st.header("Calendario de Entrenamientos")
-            
-            historial_eventos_demo = [
-                {"title": "✅", "start": "2025-11-03", "color": "#28a745"},
-                {"title": "✅", "start": "2025-11-05", "color": "#28a745"},
-                {"title": "❌", "start": "2025-11-07", "color": "#dc3545"},
-                {"title": "✅", "start": "2025-11-10", "color": "#28a745"},
-                {"title": "✅", "start": "2025-11-12", "color": "#28a745"},
-            ]
-            
-            # --- CAMBIO CLAVE AQUÍ ---
-            # Se definen las opciones en un diccionario para añadir la propiedad 'height'.
-            calendar_options = {
-                "headerToolbar": {
-                    "left": "today",
-                    "center": "title",
-                    "right": "prev,next",
-                },
-                "initialView": "dayGridMonth",
-                "height": "auto" # Esta es la línea mágica para la compatibilidad móvil
-            }
-            
-            calendar(events=historial_eventos_demo, options=calendar_options)
-
-        with tab3:
+        with tab2: # Entrenamiento de Hoy
             st.header("Tu Rutina para Hoy")
             st.info("Nota: Esta es una rutina de ejemplo.")
-            st.markdown("""
-            ### Rutina de Tren Superior - Enfoque Pecho y Espalda
-            *   **Calentamiento:** 10 minutos de cardio ligero.
-            ---
-            1.  **Press de Banca con Barra** (`Series: 4`, `Repeticiones: 8-10`)
-            2.  **Dominadas o Jalón al Pecho** (`Series: 4`, `Repeticiones: Al fallo`)
-            3.  **Aperturas con Mancuernas** (`Series: 3`, `Repeticiones: 12-15`)
-            """)
+            st.markdown("### Rutina de Tren Superior\n- **Press de Banca:** 4x10\n- **Dominadas:** 4x Fallo\n- **Remo con Barra:** 3x12")
             st.write("---")
-            if st.button("✅ He completado el entrenamiento"):
-                st.success("¡Genial! Entrenamiento registrado.")
-                st.balloons()
+            if st.button("✅ He completado el entrenamiento"): st.success("¡Genial!"); st.balloons()
+        
+        with tab3: # Mi Historial
+            st.header("Calendario de Entrenamientos")
+            historial_eventos_demo = [{"title": "✅", "start": f"2025-11-{d:02d}", "color": "#28a745"} for d in [3, 5, 7, 10, 12]]
+            calendar_options = {"headerToolbar": {"left": "today", "center": "title", "right": "prev,next"}, "initialView": "dayGridMonth", "height": "auto"}
+            calendar(events=historial_eventos_demo, options=calendar_options)
 
-        with tab4:
+        with tab4: # Mis Rutinas
             st.header("Biblioteca de Rutinas")
-            st.info("Aquí encontrarás tus rutinas asignadas.")
-            with st.expander("🏋️‍♂️ Rutina A: Enfoque Fuerza"):
-                st.markdown("- **Sentadillas:** 5x5\n- **Press de Banca:** 5x5\n- **Peso Muerto:** 1x5")
-            with st.expander("🏃‍♂️ Rutina B: Hipertrofia"):
-                st.markdown("- **Press Inclinado:** 4x10\n- **Remo con Mancuerna:** 4x12\n- **Prensa:** 3x15")
-            with st.expander("🔥 Rutina C: Acondicionamiento"):
-                st.markdown("- **Burpees:** 3x1min\n- **Kettlebell Swings:** 3x20\n- **Plancha:** 3xAl fallo")
+            with st.expander("🏋️‍♂️ Rutina A: Fuerza"): st.markdown("- **Sentadillas:** 5x5")
+            with st.expander("🏃‍♂️ Rutina B: Hipertrofia"): st.markdown("- **Press Inclinado:** 4x10")
+            
+        # --- PESTAÑA 5: MI PROGRESO (LA NUEVA SECCIÓN) ---
+        with tab5:
+            st.header("Tu Evolución en el Tiempo")
+            st.info("Aquí puedes registrar y visualizar tu progreso en métricas clave.")
 
-# --- PÁGINA DE LOGIN (Sin cambios) ---
-else:
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.title("JAVIER CANCELAS TRAINING - JCT")
-        img_col1, img_col2, img_col3 = st.columns([1, 1, 1])
-        with img_col2:
-            try:
-                image = Image.open('jct.jpeg')
-                st.image(image, width=200)
-            except FileNotFoundError:
-                st.error("No se encontró el logo.")
-        st.header("Inicio de sesión")
-        with st.form("login_form"):
-            st.text_input("Usuario", key="login_username")
-            st.text_input("Contraseña", type="password", key="login_password")
-            if st.form_submit_button("Iniciar sesión"):
-                login_user()
+            # --- Creación de datos ficticios con Pandas ---
+            data = {
+                'Fecha': pd.to_datetime(['2025-09-01', '2025-09-15', '2025-10-01', '2025-10-15', '2025-11-01']),
+                'Peso (kg)': [85.0, 84.2, 83.5, 82.1, 81.5],
+                'Press Banca (kg)': [80, 82.5, 85, 85, 87.5]
+            }
+            df_progreso = pd.DataFrame(data).set_index('Fecha')
+
+            st.write("---")
+
+            # --- Visualización del Progreso en columnas ---
+            col_prog_1, col_prog_2 = st.columns(2)
+
+            with col_prog_1:
+                st.subheader("Evolución del Peso Corporal")
+                st.line_chart(df_progreso['Peso (kg)'])
+                st.dataframe(df_progreso[['Peso (kg)']], use_container_width=True)
+
+            with col_prog_2:
+                st.subheader("Progreso de Fuerza (Press Banca)")
+                st.line_chart(df_progreso['Press Banca (kg)'])
+                st.dataframe(df_progreso[['Press Banca (kg)']], use_container_width=True)
+            
+            st.write("---")
+
+            # --- Métrica de Consistencia ---
+            st.header("Consistencia de Entrenamiento")
+            
+            entrenamientos_mes_actual = 15
+            meta_mensual = 20
+            
+            # Usamos columnas para centrar la métrica
+            _, center_metric_col, _ = st.columns([1, 1, 1])
+            with center_metric_col:
+                st.metric(
+                    label="Entrenamientos este mes",
+                    value=f"{entrenamientos_mes_actual} / {meta_mensual}",
+                    delta=f"{entrenamientos_mes_actual - 12} vs mes pasado" # Ejemplo de delta
+                )
+            
+            # Barra de Progreso
+            porcentaje_meta = int((entrenamientos_mes_actual / meta_mensua
