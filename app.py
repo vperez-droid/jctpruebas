@@ -2,6 +2,8 @@ import streamlit as st
 from PIL import Image
 import sqlite3
 from passlib.context import CryptContext
+import datetime
+from streamlit_calendar import calendar
 
 # --- CONFIGURACIÓN INICIAL ---
 st.set_page_config(page_title="Javier Cancelas Training", layout="wide")
@@ -42,12 +44,32 @@ def login_user():
 if st.session_state.logged_in:
     # --- PÁGINA PRINCIPAL (CONTENIDO DESPUÉS DEL LOGIN) ---
     st.title(f"Bienvenido, {st.session_state.username}!")
-    st.write("Aquí puedes poner el contenido principal de tu aplicación.")
+
+    # Mostrar la fecha de hoy
+    hoy = datetime.date.today()
+    st.header(f"Hoy es: {hoy.strftime('%d de %B de %Y')}")
+
+    # Opciones de configuración para el calendario
+    calendar_options = {
+        "headerToolbar": {
+            "left": "today prev,next",
+            "center": "title",
+            "right": "dayGridMonth,timeGridWeek,timeGridDay",
+        },
+        "initialView": "dayGridMonth",
+    }
+
+    st.write("---") # Línea separadora
     
+    # Mostrar el calendario
+    st.subheader("Calendario del Mes")
+    calendar_component = calendar(events=[], options=calendar_options)
+
+
     if st.button("Cerrar sesión"):
         st.session_state.logged_in = False
         st.session_state.username = ""
-        st.rerun() # <-- ¡ESTA ES LA LÍNEA CORREGIDA!
+        st.rerun()
 
 # Si el usuario no ha iniciado sesión, muestra la página de login
 else:
