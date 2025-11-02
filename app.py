@@ -5,21 +5,22 @@ from PIL import Image
 st.set_page_config(page_title="Javier Cancelas Training", layout="wide")
 
 # --- CENTRADO DEL CONTENIDO ---
-# Creamos 3 columnas para centrar el contenido principal
+# Creamos 3 columnas para centrar el bloque principal
 col1, col2, col3 = st.columns([1, 2, 1])
 
 with col2:
     # --- TÍTULO PRINCIPAL ---
-    st.title("JAVIER CANCELAS TRAINER")
+    st.title("JAVIER CANCELAS TRAINING - JCT")
 
     # --- IMAGEN / LOGO ---
-    # La mostramos aquí, después del título
-    try:
-        image = Image.open('jct.jpeg')
-        # Usamos 'width' para controlar el tamaño exacto. 200 es un buen punto de partida.
-        st.image(image, width=200)
-    except FileNotFoundError:
-        st.error("No se encontró la imagen 'jct.jpeg'. Asegúrate de que está en el repositorio.")
+    # Creamos sub-columnas DENTRO de la columna principal para centrar la imagen
+    img_col1, img_col2, img_col3 = st.columns([1, 1, 1])
+    with img_col2:
+        try:
+            image = Image.open('jct.jpeg')
+            st.image(image, width=200)
+        except FileNotFoundError:
+            st.error("No se encontró la imagen 'jct.jpeg'.")
 
     # --- SUBTÍTULO ---
     st.header("Inicio de sesión")
