@@ -52,7 +52,6 @@ if st.session_state.logged_in:
     if st.session_state.username == ADMIN_USERNAME:
         # --- VISTA DE ADMINISTRADOR (Sin cambios) ---
         st.title("Panel de Administrador")
-        # (El código del admin sigue igual)
         conn = get_db_connection(); clientes = conn.execute("SELECT username FROM users WHERE username != ?", (ADMIN_USERNAME,)).fetchall()
         if clientes:
             cliente_seleccionado = st.selectbox("Seleccionar Cliente", [c['username'] for c in clientes])
@@ -73,7 +72,6 @@ if st.session_state.logged_in:
             if st.button("Cerrar sesión"): st.session_state.logged_in = False; st.session_state.username = ""; st.rerun()
         st.write("---")
 
-        # AÑADIMOS LA NUEVA PESTAÑA "MI PROGRESO"
         tab1, tab2, tab3, tab4, tab5 = st.tabs(["Panel de Control", "Entrenamiento de Hoy", "Mi Historial", "Mis Rutinas", "Mi Progreso"])
 
         with tab1: # Panel de Control
@@ -103,34 +101,22 @@ if st.session_state.logged_in:
             with st.expander("🏋️‍♂️ Rutina A: Fuerza"): st.markdown("- **Sentadillas:** 5x5")
             with st.expander("🏃‍♂️ Rutina B: Hipertrofia"): st.markdown("- **Press Inclinado:** 4x10")
             
-        # --- PESTAÑA 5: MI PROGRESO (LA NUEVA SECCIÓN) ---
+        # --- PESTAÑA 5: MI PROGRESO (MODIFICADA) ---
         with tab5:
-            st.header("Tu Evolución en el Tiempo")
-            st.info("Aquí puedes registrar y visualizar tu progreso en métricas clave.")
-
-            # --- Creación de datos ficticios con Pandas ---
-            data = {
-                'Fecha': pd.to_datetime(['2025-09-01', '2025-09-15', '2025-10-01', '2025-10-15', '2025-11-01']),
-                'Peso (kg)': [85.0, 84.2, 83.5, 82.1, 81.5],
-                'Press Banca (kg)': [80, 82.5, 85, 85, 87.5]
-            }
-            df_progreso = pd.DataFrame(data).set_index('Fecha')
-
+            st.header("Tu Evolución")
             st.write("---")
-
-            # --- Visualización del Progreso en columnas ---
-            col_prog_1, col_prog_2 = st.columns(2)
-
-            with col_prog_1:
-                st.subheader("Evolución del Peso Corporal")
-                st.line_chart(df_progreso['Peso (kg)'])
-                st.dataframe(df_progreso[['Peso (kg)']], use_container_width=True)
-
-            with col_prog_2:
-                st.subheader("Progreso de Fuerza (Press Banca)")
-                st.line_chart(df_progreso['Press Banca (kg)'])
-                st.dataframe(df_progreso[['Press Banca (kg)']], use_container_width=True)
             
+            # --- Creación de datos ficticios MENSUALES ---
+            data = {
+                'Mes': pd.to_datetime(['2025-08-01', '2025-09-01', '2025-10-01', '2025-11-01']),
+                'Peso (kg)': [85.0, 83.8, 82.5, 81.9]
+            }
+            df_progreso = pd.DataFrame(data).set_index('Mes')
+            
+            # --- Evolución del Peso Corporal ---
+            st.subheader("Evolución del Peso Corporal (Mes a Mes)")
+            st.line_chart(df_progreso['Peso (kg)']) # Mostramos SÓLO la gráfica
+
             st.write("---")
 
             # --- Métrica de Consistencia ---
@@ -139,19 +125,15 @@ if st.session_state.logged_in:
             entrenamientos_mes_actual = 15
             meta_mensual = 20
             
-            # Usamos columnas para centrar la métrica
             _, center_metric_col, _ = st.columns([1, 1, 1])
             with center_metric_col:
                 st.metric(
                     label="Entrenamientos este mes",
-                    value=f"{entrenamientos_mes_actual} / {meta_mensual}",
-                    delta=f"{entrenamientos_mes_actual - 12} vs mes pasado" # Ejemplo de delta
+                    value=f"{entrenamientos_mes_actual} / {meta_mensual}"
                 )
             
-            # Barra de Progreso
             porcentaje_meta = int((entrenamientos_mes_actual / meta_mensual) * 100)
             st.progress(porcentaje_meta, text=f"Llevas el {porcentaje_meta}% de tu objetivo mensual")
-
 
 # --- PÁGINA DE LOGIN (Sin cambios) ---
 else:
