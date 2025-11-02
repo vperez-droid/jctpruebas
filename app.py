@@ -7,7 +7,6 @@ from passlib.context import CryptContext
 st.set_page_config(page_title="Javier Cancelas Training", layout="wide")
 
 # --- CONTEXTO DE HASHING (CON ARGON2) Y FUNCIONES DE BASE DE DATOS ---
-# Usamos argon2 para que coincida con la base de datos que creamos
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
 # Función para verificar la contraseña
@@ -24,19 +23,15 @@ def get_user(username):
     return user_data
 
 # --- LÓGICA DE LOGIN Y ESTADO DE SESIÓN ---
-
-# Inicializa el estado de la sesión si aún no existe
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
     st.session_state.username = ""
 
-# Función que se ejecuta al enviar el formulario de login
 def login_user():
     username = st.session_state.login_username
     password = st.session_state.login_password
     
     user_data = get_user(username)
-    # Si el usuario existe y la contraseña es correcta
     if user_data and verify_password(password, user_data[1]):
         st.session_state.logged_in = True
         st.session_state.username = username
@@ -44,8 +39,6 @@ def login_user():
         st.error("Usuario o contraseña incorrectos.")
 
 # --- INTERFAZ DE USUARIO ---
-
-# Si el usuario ya ha iniciado sesión, muestra la página principal
 if st.session_state.logged_in:
     # --- PÁGINA PRINCIPAL (CONTENIDO DESPUÉS DEL LOGIN) ---
     st.title(f"Bienvenido, {st.session_state.username}!")
@@ -54,7 +47,7 @@ if st.session_state.logged_in:
     if st.button("Cerrar sesión"):
         st.session_state.logged_in = False
         st.session_state.username = ""
-        st.experimental_rerun() # Forza a la app a re-ejecutarse para mostrar el login
+        st.rerun() # <-- ¡ESTA ES LA LÍNEA CORREGIDA!
 
 # Si el usuario no ha iniciado sesión, muestra la página de login
 else:
@@ -74,11 +67,9 @@ else:
 
         st.header("Inicio de sesión")
 
-        # Usamos st.form para agrupar los campos y el botón
         with st.form("login_form"):
             st.text_input("Usuario", key="login_username")
             st.text_input("Contraseña", type="password", key="login_password")
 
-            # El botón de "submit" del formulario
             if st.form_submit_button("Iniciar sesión"):
                 login_user()
