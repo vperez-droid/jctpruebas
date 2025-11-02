@@ -72,57 +72,61 @@ if st.session_state.logged_in:
         if st.button("Cerrar Sesión de Admin"):
             st.session_state.logged_in = False; st.session_state.username = ""; st.rerun()
 
-    # --- VISTA DE CLIENTE NORMAL (REESTRUCTURADA CON PESTAÑAS) ---
+    # --- VISTA DE CLIENTE NORMAL ---
     else:
-        # Encabezado principal con saludo y botón de cierre de sesión
         col1, col2 = st.columns([4, 1])
         with col1:
             st.title(f"Bienvenido, {st.session_state.username}!")
         with col2:
             if st.button("Cerrar sesión"):
                 st.session_state.logged_in = False; st.session_state.username = ""; st.rerun()
-
         st.write("---")
 
-        # Creación de las pestañas de navegación
         tab1, tab2, tab3, tab4 = st.tabs(["Panel de Control", "Mi Historial", "Entrenamiento de Hoy", "Mis Rutinas"])
 
-        # Pestaña 1: Panel de Control
+        # Pestaña 1: Panel de Control (MODIFICADO)
         with tab1:
             st.header("Resumen de tu Actividad")
             
-            dias_entrenados_ultimo_mes = 15 # Dato ficticio
-            
-            st.metric(label="Entrenamientos en los últimos 30 días", value=f"{dias_entrenados_ultimo_mes} días")
+            # Usamos columnas para centrar el contenido
+            center_col1, center_col2, center_col3 = st.columns([1, 2, 1])
+            with center_col2:
+                dias_entrenados_ultimo_mes = 15 # Dato ficticio
+                
+                st.metric(label="Entrenamientos en los últimos 30 días", value=f"{dias_entrenados_ultimo_mes} días")
 
-            mensaje = ""
-            if dias_entrenados_ultimo_mes > 20:
-                mensaje = "### ✅ ¡Imparable! Tu constancia es de otro nivel. ¡Sigue así!"
-            elif dias_entrenados_ultimo_mes > 12:
-                mensaje = "### 💪 ¡Gran trabajo! Estás construyendo un hábito sólido. ¡A por más!"
-            elif dias_entrenados_ultimo_mes > 5:
-                mensaje = "### 👍 ¡Buen ritmo! Cada sesión suma. ¡No pierdas el impulso!"
-            else:
-                mensaje = "### 🚀 ¡Listos para empezar! El camino comienza ahora. ¡Vamos a por ello!"
-            
-            # Usamos st.markdown para que el texto sea más grande y con emojis, respetando el tema
-            st.markdown(mensaje)
+                mensaje = ""
+                if dias_entrenados_ultimo_mes > 20:
+                    mensaje = "### ✅ ¡Imparable! Tu constancia es de otro nivel. ¡Sigue así!"
+                elif dias_entrenados_ultimo_mes > 12:
+                    mensaje = "### 💪 ¡Gran trabajo! Estás construyendo un hábito sólido. ¡A por más!"
+                elif dias_entrenados_ultimo_mes > 5:
+                    mensaje = "### 👍 ¡Buen ritmo! Cada sesión suma. ¡No pierdas el impulso!"
+                else:
+                    mensaje = "### 🚀 ¡Listos para empezar! El camino comienza ahora. ¡Vamos a por ello!"
+                
+                st.markdown(f"<div style='text-align: center;'>{mensaje}</div>", unsafe_allow_html=True)
 
-        # Pestaña 2: Mi Historial
+        # Pestaña 2: Mi Historial (MODIFICADO Y ARREGLADO)
         with tab2:
             st.header("Calendario de Entrenamientos")
             conn = get_db_connection()
             registros = conn.execute("SELECT fecha, estado FROM historial WHERE username = ?", (st.session_state.username,)).fetchall()
             conn.close()
+            
             historial_eventos = []
             for registro in registros:
                 if registro['estado'] == 'Entrenado':
-                    evento = {"title": "✅ Entrenado", "start": registro['fecha'], "color": "#28a745"}
-                else: evento = {"title": "❌ Faltó", "start": registro['fecha'], "color": "#dc3545"}
+                    # Ahora solo ponemos el emoji en el título
+                    evento = {"title": "✅", "start": registro['fecha'], "color": "#28a745"}
+                else: 
+                    evento = {"title": "❌", "start": registro['fecha'], "color": "#dc3545"}
                 historial_eventos.append(evento)
+            
+            # Se había borrado esta línea, la volvemos a añadir para que el calendario se muestre
             calendar(events=historial_eventos, options={"headerToolbar": {"left": "today prev,next", "center": "title"}})
 
-        # Pestaña 3: Entrenamiento de Hoy
+        # Pestaña 3: Entrenamiento de Hoy (Sin cambios)
         with tab3:
             st.header("Tu Rutina para Hoy")
             hoy_str = datetime.date.today().strftime("%Y-%m-%d")
@@ -139,7 +143,7 @@ if st.session_state.logged_in:
                 st.info("No tienes ninguna rutina asignada para hoy.")
             conn.close()
 
-        # Pestaña 4: Mis Rutinas
+        # Pestaña 4: Mis Rutinas (Sin cambios)
         with tab4:
             st.header("Biblioteca de Rutinas")
             conn = get_db_connection()
