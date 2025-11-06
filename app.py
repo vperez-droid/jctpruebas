@@ -438,7 +438,7 @@ else:
         st.title("JAVIER CANCELAS TRAINING - JCT")
         img_col1, img_col2, img_col3 = st.columns([1, 1, 1])
         with img_col2:
-            try: image = Image.open('jct.jpeg'); st.image(image, width=200)
+            try: image = Image.open('jct.png'); st.image(image, width=200)
             except FileNotFoundError: st.error("No se encontró el logo.")
         st.header("Inicio de sesión")
         with st.form("login_form"):
